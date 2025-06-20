@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>집노트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8f9fa;
+            line-height: 1.5;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #0066ff 0%, #004cc7 100%);
+            color: white;
+            padding: 20px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 20px rgba(0, 102, 255, 0.15);
+        }
+        
+        .header-content {
+            max-width: 768px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .customer-info {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .container {
+            max-width: 768px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #191f28;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .loan-section {
+            margin-bottom: 20px;
+        }
+        
+        .loan-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid #0066ff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .loan-item:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+        }
+        
+        .loan-item.active {
+            background: #e7f3ff;
+            border-left-color: #0066ff;
+        }
+        
+        .loan-title {
+            font-weight: 600;
+            color: #191f28;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .loan-toggle {
+            font-size: 12px;
+            color: #6c757d;
+            transition: transform 0.2s ease;
+        }
+        
+        .loan-item.active .loan-toggle {
+            transform: rotate(180deg);
+        }
+        
+        .loan-details {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e9ecef;
+            display: none;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #495057;
+        }
+        
+        .loan-item.active .loan-details {
+            display: block;
+        }
+        
+        .loan-formula {
+            background: #fff3cd;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            border-left: 3px solid #ffc107;
+        }
+        
+        .add-link-form {
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #191f28;
+            margin-bottom: 8px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 16px;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 16px;
+            background: #f8f9fa;
+            transition: all 0.2s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #0066ff;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+        }
+        
+        .button-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-toggle {
+            flex: 1;
+            min-width: 80px;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            background: white;
+            color: #6c757d;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        
+        .btn-toggle:hover {
+            border-color: #0066ff;
+            color: #0066ff;
+        }
+        
+        .btn-toggle.active {
+            color: white;
+            border-color: transparent;
+        }
+        
+        /* 플랫폼 색상 */
+        .btn-toggle[data-platform="zigbang"].active {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+        }
+        
+        .btn-toggle[data-platform="naver"].active {
+            background: linear-gradient(135deg, #03c75a 0%, #00b448 100%);
+        }
+        
+        .btn-toggle[data-platform="other"].active {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+        
+        /* 추가자 색상 */
+        .btn-toggle[data-user="중개사"].active {
+            background: linear-gradient(135deg, #0066ff 0%, #004cc7 100%);
+        }
+        
+        .btn-toggle[data-user="손님"].active {
+            background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);
+        }
+        
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #0066ff 0%, #004cc7 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 8px;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(0, 102, 255, 0.3);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        .filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .filter-btn {
+            padding: 8px 12px;
+            border: 1px solid #e9ecef;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .filter-btn.active {
+            background: #0066ff;
+            color: white;
+            border-color: #0066ff;
+        }
+        
+        .date-filter {
+            padding: 8px 12px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 12px;
+            background: white;
+        }
+        
+        .link-item {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease;
+        }
+        
+        .link-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+        
+        .link-item.liked {
+            background: linear-gradient(135deg, #f0fff4 0%, #dcfce7 100%);
+            border-color: #22c55e;
+        }
+        
+        .link-item.disliked {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border-color: #ef4444;
+        }
+        
+        .link-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            gap: 12px;
+        }
+        
+        .link-badges {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .badge-zigbang {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+        }
+        
+        .badge-naver {
+            background: linear-gradient(135deg, #03c75a 0%, #00b448 100%);
+        }
+        
+        .badge-other {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+        
+        .badge-broker {
+            background: linear-gradient(135deg, #0066ff 0%, #004cc7 100%);
+        }
+        
+        .badge-customer {
+            background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);
+        }
+        
+        .link-date {
+            font-size: 11px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        .link-url {
+            color: #0066ff;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            word-break: break-all;
+            line-height: 1.4;
+            margin-bottom: 12px;
+            display: block;
+        }
+        
+        .link-url:hover {
+            text-decoration: underline;
+        }
+        
+        .link-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .rating-section {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #fff3cd;
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 1px solid #ffc107;
+        }
+        
+        .rating-input {
+            width: 40px;
+            padding: 4px;
+            border: none;
+            background: transparent;
+            text-align: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: #856404;
+        }
+        
+        .rating-input:focus {
+            outline: none;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-small {
+            width: 36px;
+            height: 36px;
+            border: 2px solid #e9ecef;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-like {
+            border-color: #22c55e;
+            color: #22c55e;
+        }
+        
+        .btn-like.active {
+            background: #22c55e;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .btn-dislike {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+        
+        .btn-dislike.active {
+            background: #ef4444;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .no-links {
+            text-align: center;
+            color: #6c757d;
+            padding: 40px 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .clear-filters-btn {
+            padding: 8px 16px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        /* 모바일 최적화 */
+        @media (max-width: 480px) {
+            .container {
+                padding: 12px;
+            }
+            
+            .card {
+                padding: 16px;
+                margin-bottom: 12px;
+            }
+            
+            .header {
+                padding: 16px 12px;
+            }
+            
+            .logo {
+                font-size: 18px;
+            }
+            
+            .customer-info {
+                font-size: 14px;
+            }
+            
+            .button-row {
+                gap: 6px;
+            }
+            
+            .btn-toggle {
+                min-width: 70px;
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+            
+            .filters {
+                gap: 6px;
+            }
+            
+            .link-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            .link-badges {
+                order: -1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">🏠 집노트</div>
+            <div class="customer-info">입주 <span id="customerName">000</span> 고객님</div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="card">
+            <h2 class="card-title">💰 대출 기준정리</h2>
+            
+            <div class="loan-section">
+                <div class="loan-item" onclick="toggleLoanDetails(this)">
+                    <div class="loan-title">
+                        1. 버팀목 전세자금대출
+                        <span class="loan-toggle">▼</span>
+                    </div>
+                    <div class="loan-details">
+                        <p><strong>선순위채권 + 전세보증금 < 공시지가 × 140% × 90%</strong></p>
+                        <div class="loan-formula">
+                            선순위채권 + 전세보증금 &lt; (공시지가 × 140% × 90%)
+                        </div>
+                        <p>• 주택가격 = 공시지가 × 140% 적용</p>
+                        <p>• 담보인정비율 90% 적용</p>
+                        <p>• 선순위채권과 전세보증금의 합이 위 기준 이내여야 함</p>
+                    </div>
+                </div>
+                
+                <div class="loan-item" onclick="toggleLoanDetails(this)">
+                    <div class="loan-title">
+                        2. 보증보험 기준
+                        <span class="loan-toggle">▼</span>
+                    </div>
+                    <div class="loan-details">
+                        <p><strong>전세보증금과 선순위채권을 더한 금액이 '주택가격 × 담보인정비율(90%)' 이내일 것</strong></p>
+                        <div class="loan-formula">
+                            전세보증금 + 선순위채권 &lt; (주택가격 × 90%)
+                        </div>
+                        <p>• 갱신보증의 경우 '23.12.31 신청건까지 담보인정비율 100%를 적용</p>
+                        <p>• 주택가격 = 공시지가 × 140% 적용</p>
+                        
+                        <h4 style="margin: 16px 0 8px 0; color: #0066ff;">세부 기준:</h4>
+                        <div style="margin-left: 12px;">
+                            <p><strong>1.</strong> 선순위 채권(등기상 채권액) &lt; (개별주택가격 × 140% × 90%) × 60%</p>
+                            <div class="loan-formula">
+                                선순위채권 &lt; (개별주택가격 × 140% × 90%) × 60%
+                            </div>
+                            
+                            <p><strong>2.</strong> [선순위 채권 + 선순위보증금(먼저 전입신고한 세대 보증금 합산액)] &lt; (개별주택가격 × 140% × 90%) × 80%</p>
+                            <div class="loan-formula">
+                                (선순위채권 + 선순위보증금) &lt; (개별주택가격 × 140% × 90%) × 80%
+                            </div>
+                            
+                            <p><strong>3.</strong> 선순위채권 + 선순위보증금(새로 들어갈 세입자 보증금도 포함) &lt; 개별주택가격 × 140% × 90%</p>
+                            <div class="loan-formula">
+                                (선순위채권 + 모든보증금) &lt; (개별주택가격 × 140% × 90%)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title">🔗 매물 링크 관리</h2>
+            
+            <div class="add-link-form">
+                <div class="form-group">
+                    <label class="form-label" for="linkUrl">링크 URL</label>
+                    <input type="url" id="linkUrl" class="form-input" placeholder="https://..." required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">플랫폼 / 추가자</label>
+                    <div class="button-row">
+                        <button type="button" class="btn-toggle active" data-platform="zigbang">직방</button>
+                        <button type="button" class="btn-toggle" data-platform="naver">네이버</button>
+                        <button type="button" class="btn-toggle" data-platform="other">기타</button>
+                    </div>
+                    <div class="button-row" style="margin-top: 8px;">
+                        <button type="button" class="btn-toggle active" data-user="중개사">중개사</button>
+                        <button type="button" class="btn-toggle" data-user="손님">손님</button>
+                    </div>
+                </div>
+                
+                <button class="btn-primary" onclick="addLink()">링크 추가</button>
+            </div>
+            
+            <div class="filters">
+                <div class="filter-group">
+                    <button class="filter-btn active" data-type="platform" data-value="all">전체</button>
+                    <button class="filter-btn" data-type="platform" data-value="zigbang">직방</button>
+                    <button class="filter-btn" data-type="platform" data-value="naver">네이버</button>
+                    <button class="filter-btn" data-type="platform" data-value="other">기타</button>
+                </div>
+                <div class="filter-group">
+                    <button class="filter-btn active" data-type="user" data-value="all">전체</button>
+                    <button class="filter-btn" data-type="user" data-value="중개사">중개사</button>
+                    <button class="filter-btn" data-type="user" data-value="손님">손님</button>
+                </div>
+                <input type="date" id="dateFilter" class="date-filter" onchange="applyFilters()">
+                <button class="clear-filters-btn" onclick="clearFilters()">초기화</button>
+            </div>
+            
+            <div id="linksList">
+                <div class="no-links">
+                    아직 추가된 링크가 없습니다.<br>
+                    위 양식을 통해 매물 링크를 추가해보세요! 📝
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let links = [];
+        let linkIdCounter = 1;
+        let currentPlatform = 'zigbang';
+        let currentUser = '중개사';
+        let currentFilters = {
+            platform: 'all',
+            user: 'all'
+        };
+
+        // 대출 상세정보 토글
+        function toggleLoanDetails(element) {
+            element.classList.toggle('active');
+        }
+
+        // 버튼 토글 기능
+        document.addEventListener('DOMContentLoaded', function() {
+            // 플랫폼 버튼 이벤트
+            document.querySelectorAll('[data-platform]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('[data-platform]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentPlatform = this.dataset.platform;
+                });
+            });
+
+            // 사용자 버튼 이벤트
+            document.querySelectorAll('[data-user]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('[data-user]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentUser = this.dataset.user;
+                });
+            });
+
+            // 필터 버튼 이벤트
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const type = this.dataset.type;
+                    const value = this.dataset.value;
+                    
+                    // 같은 타입의 다른 버튼들 비활성화
+                    document.querySelectorAll(`[data-type="${type}"]`).forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    currentFilters[type] = value;
+                    applyFilters();
+                });
+            });
+        });
+
+        // 고객명 변경 기능
+        document.getElementById('customerName').addEventListener('click', function() {
+            const newName = prompt('고객명을 입력하세요:', this.textContent);
+            if (newName && newName.trim()) {
+                this.textContent = newName.trim();
+            }
+        });
+
+        function addLink() {
+            const url = document.getElementById('linkUrl').value;
+            
+            if (!url) {
+                alert('링크 URL을 입력해주세요.');
+                return;
+            }
+            
+            const link = {
+                id: linkIdCounter++,
+                url: url,
+                platform: currentPlatform,
+                addedBy: currentUser,
+                date: new Date().toISOString().split('T')[0],
+                rating: 5,
+                liked: false,
+                disliked: false
+            };
+            
+            links.unshift(link); // 최신 링크가 위로 오도록
+            
+            // 폼 초기화
+            document.getElementById('linkUrl').value = '';
+            
+            displayLinks();
+        }
+
+        function displayLinks() {
+            const container = document.getElementById('linksList');
+            
+            if (links.length === 0) {
+                container.innerHTML = `
+                    <div class="no-links">
+                        아직 추가된 링크가 없습니다.<br>
+                        위 양식을 통해 매물 링크를 추가해보세요! 📝
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            links.forEach(link => {
+                const platformName = {
+                    'zigbang': '직방',
+                    'naver': '네이버',
+                    'other': '기타'
+                }[link.platform];
+                
+                const platformClass = `badge-${link.platform}`;
+                const userClass = link.addedBy === '중개사' ? 'badge-broker' : 'badge-customer';
+                const itemClass = link.liked ? 'liked' : (link.disliked ? 'disliked' : '');
+                
+                html += `
+                    <div class="link-item ${itemClass}" data-platform="${link.platform}" data-user="${link.addedBy}" data-date="${link.date}">
+                        <div class="link-header">
+                            <div class="link-badges">
+                                <span class="badge ${platformClass}">${platformName}</span>
+                                <span class="badge ${userClass}">${link.addedBy}</span>
+                            </div>
+                            <div class="link-date">${link.date}</div>
+                        </div>
+                        <a href="${link.url}" target="_blank" class="link-url">${link.url}</a>
+                        <div class="link-actions">
+                            <div class="rating-section">
+                                <input type="number" min="1" max="10" value="${link.rating}" 
+                                       class="rating-input" onchange="updateRating(${link.id}, this.value)">
+                                <span>/10</span>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="btn-small btn-like ${link.liked ? 'active' : ''}" 
+                                        onclick="toggleLike(${link.id})">
+                                    👍
+                                </button>
+                                <button class="btn-small btn-dislike ${link.disliked ? 'active' : ''}" 
+                                        onclick="toggleDislike(${link.id})">
+                                    👎
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            applyFilters(); // 필터 적용
+        }
+
+        function updateRating(linkId, rating) {
+            const link = links.find(l => l.id === linkId);
+            if (link) {
+                link.rating = parseInt(rating);
+            }
+        }
+
+        function toggleLike(linkId) {
+            const link = links.find(l => l.id === linkId);
+            if (link) {
+                link.liked = !link.liked;
+                if (link.liked) {
+                    link.disliked = false;
+                }
+                displayLinks();
+            }
+        }
+
+        function toggleDislike(linkId) {
+            const link = links.find(l => l.id === linkId);
+            if (link) {
+                link.disliked = !link.disliked;
+                if (link.disliked) {
+                    link.liked = false;
+                }
+                displayLinks();
+            }
+        }
+
+        function applyFilters() {
+            const dateFilter = document.getElementById('dateFilter').value;
+            const linkItems = document.querySelectorAll('.link-item');
+            
+            linkItems.forEach(item => {
+                let show = true;
+                
+                if (currentFilters.platform !== 'all' && item.dataset.platform !== currentFilters.platform) {
+                    show = false;
+                }
+                
+                if (currentFilters.user !== 'all' && item.dataset.user !== currentFilters.user) {
+                    show = false;
+                }
+                
+                if (dateFilter && item.dataset.date !== dateFilter) {
+                    show = false;
+                }
+                
+                item.style.display = show ? 'flex' : 'none';
+            });
+        }
+
+        function clearFilters() {
+            // 필터 버튼 초기화
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('[data-value="all"]').forEach(btn => btn.classList.add('active'));
+            
+            // 날짜 필터 초기화
+            document.getElementById('dateFilter').value = '';
+            
+            // 필터 상태 초기화
+            currentFilters = {
+                platform: 'all',
+                user: 'all'
+            };
+            
+            applyFilters();
+        }
+
+        // 초기 화면 설정
+        displayLinks();
+    </script>
+</body>
+</html>
