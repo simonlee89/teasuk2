@@ -1,1 +1,1 @@
-web: python 매물공유.py
+web: gunicorn app:app --bind 0.0.0.0:$PORT
