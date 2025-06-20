@@ -525,6 +525,18 @@
             transform: scale(1.1);
         }
         
+        .btn-delete {
+            border-color: #dc2626;
+            color: #dc2626;
+            background: #fef2f2;
+        }
+        
+        .btn-delete:hover {
+            background: #dc2626;
+            color: white;
+            transform: scale(1.05);
+        }
+        
         .memo-section {
             background: #f8f9fa;
             border-radius: 8px;
@@ -1009,6 +1021,11 @@
                                                 onclick="toggleDislike(${link.id})">
                                             👎
                                         </button>
+                                        <button class="btn-small btn-delete" 
+                                                onclick="deleteLink(${link.id})" 
+                                                title="링크 삭제">
+                                            🗑️
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -1104,6 +1121,30 @@
                     memo: memo
                 })
             });
+        }
+
+        // 링크 삭제
+        function deleteLink(linkId) {
+            if (confirm('정말로 이 링크를 삭제하시겠습니까?')) {
+                fetch(`/api/links/${linkId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        loadLinks(); // 목록 새로고침
+                    } else {
+                        alert('링크 삭제에 실패했습니다.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('링크 삭제 중 오류가 발생했습니다.');
+                });
+            }
         }
 
         // 검색
