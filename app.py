@@ -1,58 +1,108 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import sqlite3
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from datetime import datetime
 import os
 import json
 
 app = Flask(__name__)
 
+# 데이터베이스 연결 함수
+def get_db_connection():
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url:
+        # PostgreSQL 연결
+        conn = psycopg2.connect(database_url)
+        return conn, 'postgresql'
+    else:
+        # SQLite 연결 (로컬 개발용)
+        conn = sqlite3.connect('property_links.db')
+        return conn, 'sqlite'
+
 # 데이터베이스 초기화
 def init_db():
-    conn = sqlite3.connect('property_links.db')
+    conn, db_type = get_db_connection()
     cursor = conn.cursor()
     
-    # 링크 테이블
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS links (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            url TEXT NOT NULL,
-            platform TEXT NOT NULL,
-            added_by TEXT NOT NULL,
-            date_added TEXT NOT NULL,
-            rating INTEGER DEFAULT 5,
-            liked BOOLEAN DEFAULT 0,
-            disliked BOOLEAN DEFAULT 0,
-            memo TEXT DEFAULT '',
-            customer_name TEXT DEFAULT '000',
-            move_in_date TEXT DEFAULT ''
-        )
-    ''')
-    
-    # 고객 정보 테이블
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS customer_info (
-            id INTEGER PRIMARY KEY,
-            customer_name TEXT DEFAULT '000',
-            move_in_date TEXT DEFAULT ''
-        )
-    ''')
-    
-    # 기본 고객 정보 삽입
-    cursor.execute('INSERT OR IGNORE INTO customer_info (id, customer_name, move_in_date) VALUES (1, "제일좋은집 찾아드릴분", "")')
+    if db_type == 'postgresql':
+        # PostgreSQL용 테이블 생성
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS links (
+                id SERIAL PRIMARY KEY,
+                url TEXT NOT NULL,
+                platform TEXT NOT NULL,
+                added_by TEXT NOT NULL,
+                date_added TEXT NOT NULL,
+                rating INTEGER DEFAULT 5,
+                liked BOOLEAN DEFAULT FALSE,
+                disliked BOOLEAN DEFAULT FALSE,
+                memo TEXT DEFAULT '',
+                customer_name TEXT DEFAULT '000',
+                move_in_date TEXT DEFAULT ''
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS customer_info (
+                id INTEGER PRIMARY KEY,
+                customer_name TEXT DEFAULT '000',
+                move_in_date TEXT DEFAULT ''
+            )
+        ''')
+        
+        # 기본 고객 정보 삽입 (ON CONFLICT로 중복 방지)
+        cursor.execute('''
+            INSERT INTO customer_info (id, customer_name, move_in_date) 
+            VALUES (1, '제일좋은집 찾아드릴분', '') 
+            ON CONFLICT (id) DO NOTHING
+        ''')
+    else:
+        # SQLite용 테이블 생성 (기존 코드)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS links (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                url TEXT NOT NULL,
+                platform TEXT NOT NULL,
+                added_by TEXT NOT NULL,
+                date_added TEXT NOT NULL,
+                rating INTEGER DEFAULT 5,
+                liked BOOLEAN DEFAULT 0,
+                disliked BOOLEAN DEFAULT 0,
+                memo TEXT DEFAULT '',
+                customer_name TEXT DEFAULT '000',
+                move_in_date TEXT DEFAULT ''
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS customer_info (
+                id INTEGER PRIMARY KEY,
+                customer_name TEXT DEFAULT '000',
+                move_in_date TEXT DEFAULT ''
+            )
+        ''')
+        
+        cursor.execute('INSERT OR IGNORE INTO customer_info (id, customer_name, move_in_date) VALUES (1, "제일좋은집 찾아드릴분", "")')
     
     conn.commit()
     conn.close()
 
 @app.route('/')
 def index():
-    conn = sqlite3.connect('property_links.db')
+    conn, db_type = get_db_connection()
     cursor = conn.cursor()
     
     # 고객 정보 가져오기
     cursor.execute('SELECT customer_name, move_in_date FROM customer_info WHERE id = 1')
     customer_info = cursor.fetchone()
-    customer_name = customer_info[0] if customer_info else '제일좋은집 찾아드릴분'
-    move_in_date = customer_info[1] if customer_info else ''
+    
+    if db_type == 'postgresql':
+        customer_name = customer_info[0] if customer_info else '제일좋은집 찾아드릴분'
+        move_in_date = customer_info[1] if customer_info else ''
+    else:
+        customer_name = customer_info[0] if customer_info else '제일좋은집 찾아드릴분'
+        move_in_date = customer_info[1] if customer_info else ''
     
     conn.close()
     
@@ -60,7 +110,7 @@ def index():
 
 @app.route('/api/customer_info', methods=['GET', 'POST'])
 def customer_info():
-    conn = sqlite3.connect('property_links.db')
+    conn, db_type = get_db_connection()
     cursor = conn.cursor()
     
     if request.method == 'POST':
@@ -68,8 +118,12 @@ def customer_info():
         customer_name = data.get('customer_name', '제일좋은집 찾아드릴분')
         move_in_date = data.get('move_in_date', '')
         
-        cursor.execute('UPDATE customer_info SET customer_name = ?, move_in_date = ? WHERE id = 1', 
-                      (customer_name, move_in_date))
+        if db_type == 'postgresql':
+            cursor.execute('UPDATE customer_info SET customer_name = %s, move_in_date = %s WHERE id = 1', 
+                          (customer_name, move_in_date))
+        else:
+            cursor.execute('UPDATE customer_info SET customer_name = ?, move_in_date = ? WHERE id = 1', 
+                          (customer_name, move_in_date))
         conn.commit()
         conn.close()
         
@@ -87,7 +141,7 @@ def customer_info():
 
 @app.route('/api/links', methods=['GET', 'POST'])
 def links():
-    conn = sqlite3.connect('property_links.db')
+    conn, db_type = get_db_connection()
     cursor = conn.cursor()
     
     if request.method == 'POST':
@@ -102,13 +156,20 @@ def links():
         
         date_added = datetime.now().strftime('%Y-%m-%d')
         
-        cursor.execute('''
-            INSERT INTO links (url, platform, added_by, date_added, memo)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (url, platform, added_by, date_added, memo))
+        if db_type == 'postgresql':
+            cursor.execute('''
+                INSERT INTO links (url, platform, added_by, date_added, memo)
+                VALUES (%s, %s, %s, %s, %s) RETURNING id
+            ''', (url, platform, added_by, date_added, memo))
+            link_id = cursor.fetchone()[0]
+        else:
+            cursor.execute('''
+                INSERT INTO links (url, platform, added_by, date_added, memo)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (url, platform, added_by, date_added, memo))
+            link_id = cursor.lastrowid
         
         conn.commit()
-        link_id = cursor.lastrowid
         conn.close()
         
         return jsonify({'success': True, 'id': link_id})
@@ -124,20 +185,35 @@ def links():
         params = []
         
         if platform_filter != 'all':
-            query += ' AND platform = ?'
+            if db_type == 'postgresql':
+                query += ' AND platform = %s'
+            else:
+                query += ' AND platform = ?'
             params.append(platform_filter)
         
         if user_filter != 'all':
-            query += ' AND added_by = ?'
+            if db_type == 'postgresql':
+                query += ' AND added_by = %s'
+            else:
+                query += ' AND added_by = ?'
             params.append(user_filter)
         
         if like_filter == 'liked':
-            query += ' AND liked = 1'
+            if db_type == 'postgresql':
+                query += ' AND liked = TRUE'
+            else:
+                query += ' AND liked = 1'
         elif like_filter == 'disliked':
-            query += ' AND disliked = 1'
+            if db_type == 'postgresql':
+                query += ' AND disliked = TRUE'
+            else:
+                query += ' AND disliked = 1'
         
         if date_filter:
-            query += ' AND date_added = ?'
+            if db_type == 'postgresql':
+                query += ' AND date_added = %s'
+            else:
+                query += ' AND date_added = ?'
             params.append(date_filter)
         
         query += ' ORDER BY id DESC'
@@ -164,7 +240,7 @@ def links():
 
 @app.route('/api/links/<int:link_id>', methods=['PUT', 'DELETE'])
 def update_link(link_id):
-    conn = sqlite3.connect('property_links.db')
+    conn, db_type = get_db_connection()
     cursor = conn.cursor()
     
     if request.method == 'PUT':
@@ -173,21 +249,35 @@ def update_link(link_id):
         
         if action == 'rating':
             rating = data.get('rating', 5)
-            cursor.execute('UPDATE links SET rating = ? WHERE id = ?', (rating, link_id))
+            if db_type == 'postgresql':
+                cursor.execute('UPDATE links SET rating = %s WHERE id = %s', (rating, link_id))
+            else:
+                cursor.execute('UPDATE links SET rating = ? WHERE id = ?', (rating, link_id))
         
         elif action == 'like':
             liked = data.get('liked', False)
-            cursor.execute('UPDATE links SET liked = ?, disliked = ? WHERE id = ?', 
-                          (liked, False if liked else 0, link_id))
+            if db_type == 'postgresql':
+                cursor.execute('UPDATE links SET liked = %s, disliked = %s WHERE id = %s', 
+                              (liked, False, link_id))
+            else:
+                cursor.execute('UPDATE links SET liked = ?, disliked = ? WHERE id = ?', 
+                              (liked, False if liked else 0, link_id))
         
         elif action == 'dislike':
             disliked = data.get('disliked', False)
-            cursor.execute('UPDATE links SET disliked = ?, liked = ? WHERE id = ?', 
-                          (disliked, False if disliked else 0, link_id))
+            if db_type == 'postgresql':
+                cursor.execute('UPDATE links SET disliked = %s, liked = %s WHERE id = %s', 
+                              (disliked, False, link_id))
+            else:
+                cursor.execute('UPDATE links SET disliked = ?, liked = ? WHERE id = ?', 
+                              (disliked, False if disliked else 0, link_id))
         
         elif action == 'memo':
             memo = data.get('memo', '')
-            cursor.execute('UPDATE links SET memo = ? WHERE id = ?', (memo, link_id))
+            if db_type == 'postgresql':
+                cursor.execute('UPDATE links SET memo = %s WHERE id = %s', (memo, link_id))
+            else:
+                cursor.execute('UPDATE links SET memo = ? WHERE id = ?', (memo, link_id))
         
         conn.commit()
         conn.close()
@@ -195,7 +285,10 @@ def update_link(link_id):
         return jsonify({'success': True})
     
     elif request.method == 'DELETE':
-        cursor.execute('DELETE FROM links WHERE id = ?', (link_id,))
+        if db_type == 'postgresql':
+            cursor.execute('DELETE FROM links WHERE id = %s', (link_id,))
+        else:
+            cursor.execute('DELETE FROM links WHERE id = ?', (link_id,))
         conn.commit()
         conn.close()
         
@@ -205,7 +298,7 @@ def update_link(link_id):
 def backup_data():
     """데이터베이스 내용을 JSON으로 백업"""
     try:
-        conn = sqlite3.connect('property_links.db')
+        conn, db_type = get_db_connection()
         cursor = conn.cursor()
         
         backup_data = {
@@ -219,8 +312,11 @@ def backup_data():
         links = cursor.fetchall()
         
         # 컬럼 이름 가져오기
-        cursor.execute("PRAGMA table_info(links)")
-        columns = [row[1] for row in cursor.fetchall()]
+        if db_type == 'postgresql':
+            columns = ['id', 'url', 'platform', 'added_by', 'date_added', 'rating', 'liked', 'disliked', 'memo', 'customer_name', 'move_in_date']
+        else:
+            cursor.execute("PRAGMA table_info(links)")
+            columns = [row[1] for row in cursor.fetchall()]
         
         for link in links:
             link_dict = dict(zip(columns, link))
@@ -230,8 +326,11 @@ def backup_data():
         cursor.execute('SELECT * FROM customer_info')
         customer = cursor.fetchone()
         if customer:
-            cursor.execute("PRAGMA table_info(customer_info)")
-            customer_columns = [row[1] for row in cursor.fetchall()]
+            if db_type == 'postgresql':
+                customer_columns = ['id', 'customer_name', 'move_in_date']
+            else:
+                cursor.execute("PRAGMA table_info(customer_info)")
+                customer_columns = [row[1] for row in cursor.fetchall()]
             backup_data['customer_info'] = dict(zip(customer_columns, customer))
         
         conn.close()
@@ -250,7 +349,7 @@ def restore_data():
         if not backup_data or 'links' not in backup_data:
             return jsonify({'success': False, 'error': '잘못된 백업 데이터입니다.'})
         
-        conn = sqlite3.connect('property_links.db')
+        conn, db_type = get_db_connection()
         cursor = conn.cursor()
         
         # 기존 데이터 삭제
@@ -260,33 +359,61 @@ def restore_data():
         # 고객 정보 복원
         if backup_data.get('customer_info'):
             customer_info = backup_data['customer_info']
-            cursor.execute('''
-                INSERT INTO customer_info (id, customer_name, move_in_date)
-                VALUES (?, ?, ?)
-            ''', (
-                customer_info.get('id', 1),
-                customer_info.get('customer_name', '제일좋은집 찾아드릴분'),
-                customer_info.get('move_in_date', '')
-            ))
+            if db_type == 'postgresql':
+                cursor.execute('''
+                    INSERT INTO customer_info (id, customer_name, move_in_date)
+                    VALUES (%s, %s, %s)
+                ''', (
+                    customer_info.get('id', 1),
+                    customer_info.get('customer_name', '제일좋은집 찾아드릴분'),
+                    customer_info.get('move_in_date', '')
+                ))
+            else:
+                cursor.execute('''
+                    INSERT INTO customer_info (id, customer_name, move_in_date)
+                    VALUES (?, ?, ?)
+                ''', (
+                    customer_info.get('id', 1),
+                    customer_info.get('customer_name', '제일좋은집 찾아드릴분'),
+                    customer_info.get('move_in_date', '')
+                ))
         else:
             # 기본 고객 정보 삽입
-            cursor.execute('INSERT INTO customer_info (id, customer_name, move_in_date) VALUES (1, "제일좋은집 찾아드릴분", "")')
+            if db_type == 'postgresql':
+                cursor.execute('INSERT INTO customer_info (id, customer_name, move_in_date) VALUES (1, %s, %s)', ('제일좋은집 찾아드릴분', ''))
+            else:
+                cursor.execute('INSERT INTO customer_info (id, customer_name, move_in_date) VALUES (1, "제일좋은집 찾아드릴분", "")')
         
         # 링크 데이터 복원
         for link_data in backup_data['links']:
-            cursor.execute('''
-                INSERT INTO links (url, platform, added_by, date_added, rating, liked, disliked, memo)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                link_data.get('url', ''),
-                link_data.get('platform', 'other'),
-                link_data.get('added_by', 'unknown'),
-                link_data.get('date_added', datetime.now().strftime('%Y-%m-%d')),
-                link_data.get('rating', 5),
-                link_data.get('liked', 0),
-                link_data.get('disliked', 0),
-                link_data.get('memo', '')
-            ))
+            if db_type == 'postgresql':
+                cursor.execute('''
+                    INSERT INTO links (url, platform, added_by, date_added, rating, liked, disliked, memo)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (
+                    link_data.get('url', ''),
+                    link_data.get('platform', 'other'),
+                    link_data.get('added_by', 'unknown'),
+                    link_data.get('date_added', datetime.now().strftime('%Y-%m-%d')),
+                    link_data.get('rating', 5),
+                    link_data.get('liked', False),
+                    link_data.get('disliked', False),
+                    link_data.get('memo', '')
+                ))
+            else:
+                cursor.execute('''
+                    INSERT INTO links (url, platform, added_by, date_added, rating, liked, disliked, memo)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    link_data.get('url', ''),
+                    link_data.get('platform', 'other'),
+                    link_data.get('added_by', 'unknown'),
+                    link_data.get('date_added', datetime.now().strftime('%Y-%m-%d')),
+                    link_data.get('rating', 5),
+                    link_data.get('liked', 0),
+                    link_data.get('disliked', 0),
+                    link_data.get('memo', '')
+                ))
         
         conn.commit()
         conn.close()
