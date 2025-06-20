@@ -216,16 +216,17 @@ def links():
                 query += ' AND date_added = ?'
             params.append(date_filter)
         
-        query += ' ORDER BY id DESC'
+        query += ' ORDER BY id ASC'  # 추가된 순서대로 정렬
         
         cursor.execute(query, params)
         links_data = cursor.fetchall()
         conn.close()
         
         links_list = []
-        for link in links_data:
+        for index, link in enumerate(links_data, 1):  # 1부터 시작하는 번호 추가
             links_list.append({
                 'id': link[0],
+                'number': index,  # 순서 번호 추가
                 'url': link[1],
                 'platform': link[2],
                 'added_by': link[3],

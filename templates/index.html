@@ -359,6 +359,25 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
             border: 1px solid rgba(0, 0, 0, 0.04);
             transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .link-number {
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+            color: white;
+            font-weight: 800;
+            font-size: 14px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+            z-index: 10;
         }
         
         .link-item:hover {
@@ -996,6 +1015,7 @@
                 
                 html += `
                     <div class="link-item ${itemClass}">
+                        <div class="link-number">${link.number}</div>
                         <div class="link-header">
                             <div class="link-badges">
                                 <span class="badge ${platformClass}">${platformName}</span>
