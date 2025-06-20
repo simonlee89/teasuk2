@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for
 import sqlite3
 from datetime import datetime
 import os
+import json
 
 app = Flask(__name__)
 
@@ -199,6 +200,104 @@ def update_link(link_id):
         conn.close()
         
         return jsonify({'success': True})
+
+@app.route('/api/backup', methods=['GET'])
+def backup_data():
+    """데이터베이스 내용을 JSON으로 백업"""
+    try:
+        conn = sqlite3.connect('property_links.db')
+        cursor = conn.cursor()
+        
+        backup_data = {
+            'backup_date': datetime.now().isoformat(),
+            'links': [],
+            'customer_info': None
+        }
+        
+        # 링크 데이터 백업
+        cursor.execute('SELECT * FROM links')
+        links = cursor.fetchall()
+        
+        # 컬럼 이름 가져오기
+        cursor.execute("PRAGMA table_info(links)")
+        columns = [row[1] for row in cursor.fetchall()]
+        
+        for link in links:
+            link_dict = dict(zip(columns, link))
+            backup_data['links'].append(link_dict)
+        
+        # 고객 정보 백업
+        cursor.execute('SELECT * FROM customer_info')
+        customer = cursor.fetchone()
+        if customer:
+            cursor.execute("PRAGMA table_info(customer_info)")
+            customer_columns = [row[1] for row in cursor.fetchall()]
+            backup_data['customer_info'] = dict(zip(customer_columns, customer))
+        
+        conn.close()
+        
+        return jsonify(backup_data)
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/restore', methods=['POST'])
+def restore_data():
+    """JSON 백업 데이터로 데이터베이스 복원"""
+    try:
+        backup_data = request.json
+        
+        if not backup_data or 'links' not in backup_data:
+            return jsonify({'success': False, 'error': '잘못된 백업 데이터입니다.'})
+        
+        conn = sqlite3.connect('property_links.db')
+        cursor = conn.cursor()
+        
+        # 기존 데이터 삭제
+        cursor.execute('DELETE FROM links')
+        cursor.execute('DELETE FROM customer_info')
+        
+        # 고객 정보 복원
+        if backup_data.get('customer_info'):
+            customer_info = backup_data['customer_info']
+            cursor.execute('''
+                INSERT INTO customer_info (id, customer_name, move_in_date)
+                VALUES (?, ?, ?)
+            ''', (
+                customer_info.get('id', 1),
+                customer_info.get('customer_name', '제일좋은집 찾아드릴분'),
+                customer_info.get('move_in_date', '')
+            ))
+        else:
+            # 기본 고객 정보 삽입
+            cursor.execute('INSERT INTO customer_info (id, customer_name, move_in_date) VALUES (1, "제일좋은집 찾아드릴분", "")')
+        
+        # 링크 데이터 복원
+        for link_data in backup_data['links']:
+            cursor.execute('''
+                INSERT INTO links (url, platform, added_by, date_added, rating, liked, disliked, memo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                link_data.get('url', ''),
+                link_data.get('platform', 'other'),
+                link_data.get('added_by', 'unknown'),
+                link_data.get('date_added', datetime.now().strftime('%Y-%m-%d')),
+                link_data.get('rating', 5),
+                link_data.get('liked', 0),
+                link_data.get('disliked', 0),
+                link_data.get('memo', '')
+            ))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'{len(backup_data["links"])}개의 링크가 복원되었습니다.'
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
     init_db()

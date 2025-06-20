@@ -1,0 +1,75 @@
+{
+  "backup_date": "2025-06-20T17:13:29.538740",
+  "links": [
+    {
+      "id": 1,
+      "url": "wdwdwd",
+      "platform": "naver",
+      "added_by": "중개사",
+      "date_added": "2025-06-20",
+      "rating": 8,
+      "liked": 1,
+      "disliked": 0,
+      "memo": "wdwdwddwdwdwd",
+      "customer_name": "000",
+      "move_in_date": ""
+    },
+    {
+      "id": 2,
+      "url": "123123213123",
+      "platform": "naver",
+      "added_by": "중개사",
+      "date_added": "2025-06-20",
+      "rating": 5,
+      "liked": 1,
+      "disliked": 0,
+      "memo": "",
+      "customer_name": "000",
+      "move_in_date": ""
+    },
+    {
+      "id": 3,
+      "url": "123123",
+      "platform": "naver",
+      "added_by": "중개사",
+      "date_added": "2025-06-20",
+      "rating": 5,
+      "liked": 1,
+      "disliked": 0,
+      "memo": "12312312323",
+      "customer_name": "000",
+      "move_in_date": ""
+    },
+    {
+      "id": 4,
+      "url": "123",
+      "platform": "zigbang",
+      "added_by": "중개사",
+      "date_added": "2025-06-20",
+      "rating": 5,
+      "liked": 1,
+      "disliked": 0,
+      "memo": "fefef",
+      "customer_name": "000",
+      "move_in_date": ""
+    },
+    {
+      "id": 5,
+      "url": "wwww",
+      "platform": "zigbang",
+      "added_by": "손님",
+      "date_added": "2025-06-20",
+      "rating": 9,
+      "liked": 1,
+      "disliked": 0,
+      "memo": "efefefe",
+      "customer_name": "000",
+      "move_in_date": ""
+    }
+  ],
+  "customer_info": {
+    "id": 1,
+    "customer_name": "제일좋은집 찾아드릴분",
+    "move_in_date": "2025-06-07"
+  }
+}
