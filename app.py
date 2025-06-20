@@ -220,13 +220,19 @@ def links():
         
         cursor.execute(query, params)
         links_data = cursor.fetchall()
+        
+        # 전체 링크 개수 구하기 (번호 계산용)
+        total_count = len(links_data)
+        
         conn.close()
         
         links_list = []
-        for index, link in enumerate(links_data, 1):  # 최신순으로 1부터 시작하는 번호 추가
+        for index, link in enumerate(links_data):  # 추가 순서대로 번호 매기기
+            # 최신순으로 정렬되어 있으므로, 번호는 역순으로 계산
+            link_number = total_count - index
             links_list.append({
                 'id': link[0],
-                'number': index,  # 순서 번호 추가
+                'number': link_number,  # 추가 순서대로 번호 (첫 번째=1, 두 번째=2...)
                 'url': link[1],
                 'platform': link[2],
                 'added_by': link[3],
